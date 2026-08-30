@@ -77,7 +77,7 @@ bearer_scheme = HTTPBearer()
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
 
     token = credentials.credentials
