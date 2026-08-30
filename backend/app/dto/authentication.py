@@ -20,16 +20,24 @@ class RegistrationData(BaseModel):
     name: str = Field(
         ...,
         min_length=2,
-        max_length=100
+        max_length=100,
+        description="Full name of the user"
     )
 
-    email: str
+    email: str = Field(
+        ...,
+        description="Email address"
+    )
 
-    contact: str
+    contact: str = Field(
+        ...,
+        description="Mobile number (10 digits)"
+    )
 
     password: str = Field(
         ...,
-        min_length=5
+        min_length=5,
+        description="Password"
     )
 
     @field_validator("name")
