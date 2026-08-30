@@ -4,7 +4,7 @@ from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
-from app.database import get_db
+from app.models.database import get_db
 from app.models.resume_tables import User
 from app.dto.resume_upload import ResumeUploadResponseDTO
 from app.services.resume_upload import upload_resume
