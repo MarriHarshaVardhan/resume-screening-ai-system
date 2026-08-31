@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.models.database import (
@@ -13,9 +14,16 @@ Base.metadata.create_all(
     bind=engine
 )
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+
+
 app = FastAPI(
     title="AI Resume Screener API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 app.include_router(

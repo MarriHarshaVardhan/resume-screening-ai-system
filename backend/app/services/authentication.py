@@ -61,6 +61,8 @@ def register_user(
     return {
         "message": "User registered successfully",
         "user_id": new_user.user_id,
+        "name": new_user.name,
+        "contact": new_user.contact,
         "email": new_user.email,
         "access_token": access_token,
         "token_type": "bearer"
@@ -106,6 +108,8 @@ def login_user(
     return {
         "message": "Login successful",
         "user_id": user.user_id,
+        "name": user.name,
+        "contact": user.contact,
         "email": user.email,
         "access_token": access_token,
         "token_type": "bearer"
