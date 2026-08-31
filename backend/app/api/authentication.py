@@ -43,7 +43,8 @@ def get_profile(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = int(current_user["sub"]) if "sub" in current_user else None
+    # user_id = int(current_user["sub"]) if "sub" in current_user else None
+    user_id= current_user.user_id
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(

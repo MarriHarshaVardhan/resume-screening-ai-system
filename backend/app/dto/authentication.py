@@ -24,14 +24,14 @@ class RegistrationData(BaseModel):
         description="Full name of the user"
     )
 
-    email: str = Field(
-        ...,
-        description="Email address"
-    )
-
     contact: str = Field(
         ...,
         description="Mobile number (10 digits)"
+    )
+
+    email: str = Field(
+        ...,
+        description="Email address"
     )
 
     password: str = Field(
@@ -39,6 +39,17 @@ class RegistrationData(BaseModel):
         min_length=5,
         description="Password"
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "name": "John Doe",
+                "contact": "9876543210",
+                "email": "john@example.com",
+                "password": "Password@123"
+            }
+        }
+    }
 
     @field_validator("name")
     @classmethod
@@ -145,8 +156,8 @@ class RegistrationRequest(BaseModel):
                 "data": {
                     "registration": {
                         "name": "John Doe",
-                        "email": "john@example.com",
                         "contact": "9876543210",
+                        "email": "john@example.com",
                         "password": "Password@123"
                     }
                 }
