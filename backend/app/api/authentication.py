@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.models.database import get_db
+from app.models.resume_tables import User
 
 from app.dto.authentication import (
     RegistrationRequest,
@@ -39,9 +40,23 @@ def login(
 
 @router.get("/me")
 def get_profile(
+    db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    user_id = int(current_user["sub"]) if "sub" in current_user else None
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
     return {
         "message": "User profile retrieved successfully",
-        "data": current_user
+        "data": {
+            "user_id": user.user_id,
+            "name": user.name,
+            "contact": user.contact,
+            "email": user.email,
+            "role": user.role
+        }
     }

@@ -1,12 +1,9 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-
-class Base(DeclarativeBase):
-    pass
+from app.models.database import Base
 
 
 class TimestampMixin:
@@ -48,10 +45,10 @@ class Resume(TimestampMixin, SoftDeleteMixin, Base):
     resume_file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     resume_file_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     resume_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-    skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
     experience: Mapped[str | None] = mapped_column(String(100), nullable=True)
     qualification: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    certifications: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    certifications: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
     user = relationship("User", back_populates="resumes")
     screening_results = relationship("ScreeningResult", back_populates="resume")
@@ -63,7 +60,7 @@ class Job(TimestampMixin, SoftDeleteMixin, Base):
     job_id: Mapped[int] = mapped_column(primary_key=True)
     job_title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     job_description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    required_skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    required_skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
     required_experience: Mapped[str | None] = mapped_column(String(100), nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
@@ -89,8 +86,8 @@ class ScreeningResult(TimestampMixin, Base):
     )
     current_step: Mapped[str | None] = mapped_column(String(100), nullable=True)
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    matched_skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
-    missing_skills: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    matched_skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    missing_skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     screening_result: Mapped[str | None] = mapped_column(String(50), nullable=True)
     recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)

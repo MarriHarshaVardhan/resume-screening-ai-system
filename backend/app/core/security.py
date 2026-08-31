@@ -77,7 +77,7 @@ bearer_scheme = HTTPBearer()
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
 
     token = credentials.credentials
@@ -114,3 +114,23 @@ def get_current_user(
             status_code=401,
             detail="Invalid authentication token"
         )
+
+
+optional_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(optional_bearer_scheme)
+) -> dict | None:
+    if not credentials:
+        return None
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
+        return payload
+    except Exception:
+        return None
