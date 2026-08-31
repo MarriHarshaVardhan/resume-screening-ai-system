@@ -1,6 +1,7 @@
 from io import BytesIO
 from xml.sax.saxutils import escape
 
+from app.models.resume_tables import ScreeningResult
 from fastapi import HTTPException
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -9,15 +10,13 @@ from reportlab.lib.styles import (
     getSampleStyleSheet,
 )
 from reportlab.platypus import (
-    SimpleDocTemplate,
     Paragraph,
+    SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
 )
 from sqlalchemy.orm import Session
-
-from app.models.resume_tables import ScreeningResult
 
 
 def get_screening_result(
