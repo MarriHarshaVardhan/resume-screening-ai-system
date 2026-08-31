@@ -6,9 +6,10 @@ from app.models.database import (
     engine
 )
 
+from app.models.database import Base, engine
 from app.models.resume_tables import User
-
 from app.routes import router
+from fastapi import FastAPI
 
 Base.metadata.create_all(
     bind=engine

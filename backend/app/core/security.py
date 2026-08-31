@@ -1,23 +1,13 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
-
 from pwdlib import PasswordHash
+from fastapi import HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
 
-from fastapi import HTTPException, Depends
-
-from fastapi.security import (
-    HTTPBearer,
-    HTTPAuthorizationCredentials
-)
-
-bearer_scheme = HTTPBearer()
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
-):
-    token = credentials.credentials
-    # ... decoding and validation logic
+from app.models.database import get_db
+from app.models.resume_tables import User
 
 password_hash = PasswordHash.recommended()
 
@@ -77,41 +67,47 @@ bearer_scheme = HTTPBearer()
 
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
-):
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+) -> User:
 
     token = credentials.credentials
 
     try:
-
         payload = jwt.decode(
             token,
             SECRET_KEY,
             algorithms=[ALGORITHM]
         )
 
-        user_id = payload.get("sub")
+        user_id_str = payload.get("sub")
 
-        if user_id is None:
-
+        if user_id_str is None:
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token"
             )
 
-        return payload
+        user_id = int(user_id_str)
+        user = db.query(User).filter(User.user_id == user_id).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+
+        return user
 
     except jwt.ExpiredSignatureError:
-
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication token has expired"
         )
 
-    except jwt.InvalidTokenError:
-
+    except (jwt.InvalidTokenError, ValueError):
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token"
         )
 
