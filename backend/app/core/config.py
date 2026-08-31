@@ -12,9 +12,8 @@ class Settings(BaseSettings):
     MAX_RESUME_FILE_SIZE: int = 10485760  # 10 MB
 
     # AI Model Settings
-    OPENAI_API_KEY: str | None = None
-    OPENAI_MODEL: str = "gpt-4o-mini"
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    GROQ_API_KEY: str
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -44,6 +44,7 @@ class Resume(TimestampMixin, SoftDeleteMixin, Base):
     resume_file_name: Mapped[str] = mapped_column(String(255), nullable=False)
     resume_file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     resume_file_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    cleaned_resume_text: Mapped[str | None] = mapped_column(Text,nullable=True)
     resume_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
     experience: Mapped[str | None] = mapped_column(String(100), nullable=True)
