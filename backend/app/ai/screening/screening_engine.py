@@ -12,15 +12,18 @@ def screen_resume(
     job_requirements: str
 ) -> ScreeningResultSchema:
 
+    safe_resume = (resume_text or "").replace("\x00", "")[:6000]
+    safe_job = (job_requirements or "").replace("\x00", "")[:3000]
+
     prompt = SCREENING_PROMPT.format(
-        resume_text=resume_text,
-        job_requirements=job_requirements
+        resume_text=safe_resume,
+        job_requirements=safe_job
     )
 
     response = groq_client.generate(
-        prompt=prompt,
-        temperature=0.0
+        prompt=prompt
     )
+
 
     try:
 

@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.ai.parsers.pdf_parser import extract_text_from_pdf
 from app.ai.parsers.docx_parser import extract_text_from_docx
 from app.ai.preprocessors.text_cleaner import clean_resume_text
@@ -27,6 +28,7 @@ class AIScreeningAgent:
         ext = (resume.resume_file_name or "").lower()
 
         extracted_text = ""
+        allowed_ext = settings.get_allowed_extensions()
         if ext.endswith(".pdf"):
             extracted_text = extract_text_from_pdf(file_path)
         elif ext.endswith(".docx"):
@@ -34,23 +36,27 @@ class AIScreeningAgent:
         else:
             extracted_text = resume.resume_text or ""
 
+        extracted_text = (extracted_text or "").replace("\x00", "")
         cleaned_text = clean_resume_text(extracted_text) if extracted_text else ""
+        cleaned_text = (cleaned_text or "").replace("\x00", "")
+
         resume.resume_text = extracted_text
         resume.cleaned_resume_text = cleaned_text
 
         # Try Groq AI analysis if available or extract structured info
         try:
             analysis = analyze_resume_with_groq(cleaned_text)
-            resume.skills = analysis.get("skills") or []
-            resume.experience = analysis.get("experience")
-            resume.qualification = analysis.get("qualification")
-            resume.certifications = analysis.get("certifications") or []
+            resume.skills = [str(s).replace("\x00", "") for s in (analysis.get("skills") or [])]
+            resume.experience = str(analysis.get("experience") or "").replace("\x00", "") if analysis.get("experience") else None
+            resume.qualification = str(analysis.get("qualification") or "").replace("\x00", "") if analysis.get("qualification") else None
+            resume.certifications = [str(c).replace("\x00", "") for c in (analysis.get("certifications") or [])]
         except Exception as e:
             logger.warning("Groq AI analysis skipped/fallback: %s", e)
 
         db.commit()
         db.refresh(resume)
         return cleaned_text or extracted_text
+
 
     def screen_resume_against_job(
         self,
@@ -67,18 +73,16 @@ class AIScreeningAgent:
         if not resume:
             raise ValueError(f"Resume {resume_id} not found")
 
-        job = db.query(Job).filter(Job.job_id == job_id).first()
+        job = db.query(Job).filter(Job.job_id == job_id).first() if job_id else None
         if not job:
-            # Fallback: create default target job if missing
-            job = Job(
-                job_title="Senior AI Engineer",
-                job_description="Looking for AI Engineer skilled in Python, Machine Learning, FastAPI, PostgreSQL, RAG, and NLP.",
-                required_skills=["Python", "Machine Learning", "FastAPI", "PostgreSQL", "RAG", "NLP"],
-                required_experience="2+ years"
+            job = db.query(Job).order_by(Job.created_at.desc()).first()
+
+        if not job:
+            # No job found — raise an error so callers know no job exists
+            raise ValueError(
+                "No job description found in the database. "
+                "Please create a job before running screening."
             )
-            db.add(job)
-            db.commit()
-            db.refresh(job)
 
         # Ensure resume text is extracted and cleaned
         resume_text = resume.cleaned_resume_text or resume.resume_text
@@ -86,21 +90,39 @@ class AIScreeningAgent:
             resume_text = self.process_and_extract_resume(db, resume)
 
         resume_skills = resume.skills or []
-        required_skills = job.required_skills or ["Python", "FastAPI", "SQL"]
+        required_skills = job.required_skills or []
 
-        # RAG Vector similarity matching
-        matched_skills, missing_skills, score = kb_engine.rag_skill_match(
-            resume_skills=resume_skills,
-            required_skills=required_skills,
-            resume_text=resume_text or "",
-            job_description=job.job_description or ""
-        )
+        # Index resume into Pinecone Vector DB Knowledge Base
+        try:
+            from app.ai.vector_store.pinecone_store import pinecone_kb
+            pinecone_kb.upsert_resume_vector(
+                resume_id=resume.resume_id,
+                text=resume_text,
+                metadata={"user_id": resume.user_id, "job_title": job.job_title}
+            )
+            matched_skills, missing_skills, score = pinecone_kb.query_kb_vectors(
+                resume_skills=resume_skills,
+                required_skills=required_skills,
+                resume_text=resume_text or "",
+                job_description=job.job_description or ""
+            )
+        except Exception as pe:
+            logger.warning("Pinecone KB integration fallback: %s", pe)
+            matched_skills, missing_skills, score = kb_engine.rag_skill_match(
+                resume_skills=resume_skills,
+                required_skills=required_skills,
+                resume_text=resume_text or "",
+                job_description=job.job_description or ""
+            )
 
-        # Recommendation & status evaluation
-        if score >= 75.0:
+        # Recommendation & status evaluation using configurable thresholds
+        selected_threshold = settings.SCORE_SELECTED_THRESHOLD
+        shortlisted_threshold = settings.SCORE_SHORTLISTED_THRESHOLD
+
+        if score >= selected_threshold:
             status_str = "Selected"
             recommendation = f"Strong candidate match ({score}%). Possesses key skills: {', '.join(matched_skills[:4])}."
-        elif score >= 50.0:
+        elif score >= shortlisted_threshold:
             status_str = "Shortlisted"
             recommendation = f"Moderate match ({score}%). Missing some required skills: {', '.join(missing_skills[:3])}."
         else:

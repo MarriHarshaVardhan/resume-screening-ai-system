@@ -5,6 +5,8 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,15 +19,23 @@ class VectorKnowledgeBase:
     def __init__(self):
         self.vectorizer = TfidfVectorizer(
             stop_words="english",
-            ngram_range=(1, 2),
-            max_features=5000
+            ngram_range=(settings.TFIDF_NGRAM_MIN, settings.TFIDF_NGRAM_MAX),
+            max_features=settings.TFIDF_MAX_FEATURES
         )
         self.doc_chunks: List[Dict[str, Any]] = []
 
-    def chunk_text(self, text: str, chunk_size: int = 250, overlap: int = 50) -> List[str]:
+    def chunk_text(
+        self,
+        text: str,
+        chunk_size: int | None = None,
+        overlap: int | None = None
+    ) -> List[str]:
         """
         Split text into overlapping sentence/word chunks.
         """
+        chunk_size = chunk_size or settings.CHUNK_SIZE
+        overlap = overlap or settings.CHUNK_OVERLAP
+
         if not text:
             return []
 
@@ -42,10 +52,23 @@ class VectorKnowledgeBase:
 
         return chunks
 
+    def _compute_tfidf_vector(self, text: str) -> np.ndarray:
+        """
+        Compute TF-IDF vector array for a given text.
+        """
+        if not text:
+            return np.zeros(settings.PINECONE_VECTOR_DIMENSION)
+        try:
+            vec = self.vectorizer.fit_transform([text]).toarray()[0]
+            return vec
+        except Exception:
+            return np.zeros(settings.PINECONE_VECTOR_DIMENSION)
+
     def compute_similarity(self, text1: str, text2: str) -> float:
         """
         Compute TF-IDF cosine similarity score between two text strings (0.0 to 100.0).
         """
+
         if not text1 or not text2:
             return 0.0
 
@@ -100,8 +123,10 @@ class VectorKnowledgeBase:
         else:
             skill_score = text_score
 
-        # Composite score weighting: 60% skills + 40% vector text similarity
-        composite_score = float(np.round((skill_score * 0.6) + (text_score * 0.4), 2))
+        # Composite score weighting from config (default: 60% skills + 40% vector)
+        skill_weight = settings.SCORE_SKILL_WEIGHT
+        text_weight = settings.SCORE_TEXT_WEIGHT
+        composite_score = float(np.round((skill_score * skill_weight) + (text_score * text_weight), 2))
         composite_score = min(100.0, max(0.0, composite_score))
 
         return matched, missing, composite_score

@@ -3,11 +3,14 @@ import re
 
 def clean_resume_text(text: str) -> str:
     """
-    Clean and normalize extracted resume text.
+    Clean and normalize extracted resume text, removing NUL bytes and control characters.
     """
 
     if not text:
         return ""
+
+    # Remove PostgreSQL-incompatible NUL (0x00) bytes immediately
+    text = text.replace("\x00", "")
 
     # Normalize Windows and old-style line endings
     text = text.replace("\r\n", "\n")
@@ -44,6 +47,9 @@ def clean_resume_text(text: str) -> str:
         text
     )
 
+    # Remove any remaining NUL bytes
+    text = text.replace("\x00", "")
+
     # Normalize spaces again after character cleanup
     text = re.sub(
         r"[ ]{2,}",
@@ -51,4 +57,4 @@ def clean_resume_text(text: str) -> str:
         text
     )
 
-    return text.strip()
+    return text.strip()

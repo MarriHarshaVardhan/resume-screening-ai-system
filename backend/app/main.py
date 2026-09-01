@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+from app.core.config import settings
 from app.models.database import Base, engine
 from app.routes import router
 from fastapi import FastAPI
@@ -17,14 +18,14 @@ async def lifespan(app: FastAPI):
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
-    title="AI Resume Screener API",
-    version="1.0.0",
+    title=settings.APP_TITLE,
+    version=settings.APP_VERSION,
     lifespan=lifespan
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,5 +41,5 @@ app.include_router(
 def root():
 
     return {
-        "message": "AI Resume Screener API is running"
+        "message": f"{settings.APP_TITLE} is running"
     }

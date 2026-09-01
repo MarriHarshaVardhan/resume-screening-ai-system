@@ -1,10 +1,4 @@
-from app.ai.embeddings.embedding_service import (
-    embedding_service
-)
-
-from app.ai.vector_store.chroma_store import (
-    chroma_store
-)
+from app.ai.vector_store.pinecone_store import pinecone_kb
 
 
 def index_resume(
@@ -12,21 +6,12 @@ def index_resume(
     resume_text: str,
     user_id: int
 ):
-
-    embedding = (
-        embedding_service.create_embedding(
-            resume_text
-        )
-    )
-
-    chroma_store.add_document(
-        document_id=f"resume_{resume_id}",
+    pinecone_kb.upsert_resume_vector(
+        resume_id=resume_id,
         text=resume_text,
-        embedding=embedding,
         metadata={
             "resume_id": str(resume_id),
             "user_id": str(user_id)
         }
     )
-
     return True

@@ -9,60 +9,98 @@ from app.dto.ai_screening import AIScreeningResponseDTO
 
 logger = logging.getLogger(__name__)
 
-
 def execute_ai_screening(
     db: Session,
     user: User,
-    resume_id: int | None = None,
-    job_id: int | None = None
+    resume_id: int,
+    job_id: int
 ) -> AIScreeningResponseDTO:
     """
-    Execute AI RAG screening pipeline for user's uploaded resume against target job description.
+    Execute AI RAG screening pipeline.
+
+    Compares the selected resume against the job
+    selected by the user/recruiter.
     """
-    if resume_id:
-        resume = db.query(Resume).filter(Resume.resume_id == resume_id, Resume.user_id == user.user_id).first()
-    else:
-        resume = db.query(Resume).filter(Resume.user_id == user.user_id).order_by(Resume.created_at.desc()).first()
+
+
+    resume = (
+        db.query(Resume)
+        .filter(
+            Resume.resume_id == resume_id,
+            Resume.user_id == user.user_id
+        )
+        .first()
+    )
 
     if not resume:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No resume found for candidate. Please upload a resume first."
+            detail="Resume not found for this candidate."
         )
 
-    target_job_id = job_id
-    if not target_job_id:
-        job = db.query(Job).order_by(Job.created_at.desc()).first()
-        if not job:
-            job = Job(
-                job_title="Software Engineer",
-                job_description="Looking for Software Engineer with skills in Python, FastAPI, PostgreSQL, and Data Structures.",
-                required_skills=["Python", "FastAPI", "PostgreSQL", "Data Structures"],
-                required_experience="1+ years"
-            )
-            db.add(job)
-            db.commit()
-            db.refresh(job)
-        target_job_id = job.job_id
+    job = (
+        db.query(Job)
+        .filter(Job.job_id == job_id)
+        .first()
+    )
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found. Please create a job first."
+        )
+
+
+    if not job.job_title:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job title is required."
+        )
+
+    if not job.job_description:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job description is required."
+        )
+
+    if not job.required_skills:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Required skills are required."
+        )
+
+    if not job.required_experience:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Required experience is required."
+        )
 
     screening = screening_agent.screen_resume_against_job(
         db=db,
         resume_id=resume.resume_id,
-        job_id=target_job_id
+        job_id=job.job_id
     )
+
 
     return AIScreeningResponseDTO(
         message="AI RAG Screening completed successfully",
+
         screening_id=screening.screening_id,
+
         candidate_name=user.name,
-        job_title=screening.job.job_title if screening.job else "N/A",
+
+        job_title=job.job_title,
+
         match_score=screening.match_score or 0.0,
+
         status=screening.status or "Completed",
+
         matched_skills=screening.matched_skills or [],
+
         missing_skills=screening.missing_skills or [],
+
         recommendation=screening.recommendation or ""
     )
-
 
 def search_knowledge_base_rag(query: str, db: Session) -> dict:
     """

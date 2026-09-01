@@ -15,7 +15,7 @@ IMPORTANT RULES:
 
 Required JSON format:
 
-{
+{{
     "candidate_name": null,
     "email": null,
     "phone": null,
@@ -24,7 +24,7 @@ Required JSON format:
     "qualifications": [],
     "certifications": [],
     "projects": []
-}
+}}
 
 Resume Text:
 
@@ -44,13 +44,13 @@ IMPORTANT:
 
 Return exactly:
 
-{
+{{
     "job_title": "",
     "required_skills": [],
     "required_experience": null,
     "required_qualifications": [],
     "required_certifications": []
-}
+}}
 
 Job Description:
 
@@ -74,7 +74,7 @@ Return ONLY valid JSON.
 
 Required format:
 
-{
+{{
     "matched_skills": [],
     "missing_skills": [],
     "experience_match": "",
@@ -85,7 +85,7 @@ Required format:
     "match_score": 0,
     "recommendation": "",
     "explanation": ""
-}
+}}
 
 Resume:
 
@@ -94,4 +94,4 @@ Resume:
 Job Requirements:
 
 {job_requirements}
-"""
+"""

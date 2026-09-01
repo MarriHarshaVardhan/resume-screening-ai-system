@@ -36,12 +36,15 @@ def _extract_fallback_resume_info(text: str) -> dict:
 
 
 def analyze_resume_with_groq(cleaned_resume_text: str) -> dict:
-    groq_key = getattr(settings, "GROQ_API_KEY", None)
+    groq_key = settings.GROQ_API_KEY
     if not groq_key or groq_key.startswith("your-") or "key" in groq_key.lower():
         return _extract_fallback_resume_info(cleaned_resume_text)
 
+    # Clean null bytes and limit text to avoid TPM token overflow
+    safe_text = (cleaned_resume_text or "").replace("\x00", "")[:6000]
+
     try:
-        client = Groq(api_key=groq_key, timeout=5.0)
+        client = Groq(api_key=groq_key, timeout=settings.GROQ_TIMEOUT)
         prompt = f"""
 You are an AI resume information extraction system.
 
@@ -63,11 +66,11 @@ Return only valid JSON in this exact format:
 
 Resume:
 
-{cleaned_resume_text}
+{safe_text}
 """
 
         response = client.chat.completions.create(
-            model=getattr(settings, "GROQ_MODEL", "llama-3.3-70b-versatile"),
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -78,7 +81,7 @@ Resume:
                     "content": prompt
                 }
             ],
-            temperature=0,
+            temperature=settings.GROQ_TEMPERATURE,
             response_format={"type": "json_object"}
         )
 
@@ -91,4 +94,4 @@ Resume:
 
     except Exception as e:
         logger.warning("Groq resume analysis fallback triggered: %s", e)
-        return _extract_fallback_resume_info(cleaned_resume_text)
+        return _extract_fallback_resume_info(cleaned_resume_text)

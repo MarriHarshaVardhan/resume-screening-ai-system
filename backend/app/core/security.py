@@ -6,6 +6,7 @@ from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.database import get_db
 from app.models.resume_tables import User
 
@@ -27,13 +28,6 @@ def verify_password(
         hashed_password
     )
 
-SECRET_KEY = (
-    "resume-screening-ai-system-secret-key-change-this"
-)
-
-ALGORITHM = "HS256"
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 def create_access_token(
     user_id: int,
@@ -44,7 +38,7 @@ def create_access_token(
     expire = (
         datetime.now(timezone.utc)
         + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+            minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
         )
     )
 
@@ -57,8 +51,8 @@ def create_access_token(
 
     token = jwt.encode(
         payload,
-        SECRET_KEY,
-        algorithm=ALGORITHM
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM
     )
 
     return token
@@ -76,8 +70,8 @@ def get_current_user(
     try:
         payload = jwt.decode(
             token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
         )
 
         user_id_str = payload.get("sub")
@@ -124,9 +118,9 @@ def get_current_user_optional(
     try:
         payload = jwt.decode(
             token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM]
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
         )
         return payload
     except Exception:
-        return None
+        return None

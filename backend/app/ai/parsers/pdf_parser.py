@@ -19,10 +19,10 @@ def extract_text_from_pdf(file_path: str) -> str:
         for page_number, page in enumerate(reader.pages, start=1):
             page_text = page.extract_text()
             if page_text:
-                extracted_pages.append(page_text)
+                extracted_pages.append(page_text.replace("\x00", ""))
             logger.debug("Processed PDF page %s", page_number)
 
-        extracted_text = "\n".join(extracted_pages).strip()
+        extracted_text = "\n".join(extracted_pages).strip().replace("\x00", "")
         if extracted_text:
             logger.info("PDF text extraction completed successfully")
             return extracted_text
@@ -32,10 +32,10 @@ def extract_text_from_pdf(file_path: str) -> str:
     # Raw text fallback for plain text or stream formatted files
     try:
         with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-            fallback_text = f.read().strip()
+            fallback_text = f.read(50000).strip().replace("\x00", "")
             if fallback_text:
                 return fallback_text
     except Exception:
         pass
 
-    return ""
+    return ""

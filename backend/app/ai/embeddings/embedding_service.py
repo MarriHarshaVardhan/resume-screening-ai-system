@@ -1,15 +1,20 @@
-from sentence_transformers import SentenceTransformer
-
 from app.ai.config import ai_settings
 
 
 class EmbeddingService:
 
     def __init__(self):
+        self._model = None
 
-        self.model = SentenceTransformer(
-            ai_settings.EMBEDDING_MODEL
-        )
+    @property
+    def model(self):
+        if self._model is None:
+            from sentence_transformers import SentenceTransformer
+            self._model = SentenceTransformer(
+                ai_settings.EMBEDDING_MODEL
+            )
+        return self._model
+
 
     def create_embedding(
         self,
@@ -21,12 +26,16 @@ class EmbeddingService:
                 "Text cannot be empty"
             )
 
-        embedding = self.model.encode(
-            text,
-            normalize_embeddings=True
-        )
-
-        return embedding.tolist()
+        try:
+            embedding = self.model.encode(
+                text,
+                normalize_embeddings=True
+            )
+            return embedding.tolist()
+        except Exception:
+            from app.ai.rag.kb_vector_engine import kb_engine
+            return kb_engine._compute_tfidf_vector(text).tolist()
 
 
 embedding_service = EmbeddingService()
+
