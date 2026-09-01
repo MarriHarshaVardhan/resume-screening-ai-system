@@ -10,12 +10,12 @@ from sqlalchemy.orm import Session
 
 from app.models.database import get_db
 
-from app.ai.extraction.resume_extractor import (
+from app.services.resume_extraction import (
     extract_resume_text
 )
 
-from app.services.resume_service import (
-    process_resume
+from app.services.ai_resume_service import (
+   process_resume
 )
 
 

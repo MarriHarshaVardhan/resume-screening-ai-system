@@ -18,7 +18,28 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-@router.post("/registration")
+@router.post(
+    "/registration",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "example": {
+                        "data": {
+                            "registration": {
+                                "name": "John Doe",
+                                "email": "john@example.com",
+                                "contact": "9876543210",
+                                "password": "Password@123"
+                            }
+                        },
+                        "message": "Registration"
+                    }
+                }
+            }
+        }
+    }
+)
 def registration(
     request: RegistrationRequest,
     db: Session = Depends(get_db)
@@ -28,7 +49,26 @@ def registration(
         registration_data=request.data.registration
     )
 
-@router.post("/login")
+@router.post(
+    "/login",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "example": {
+                        "data": {
+                            "login": {
+                                "email_or_mobile": "john@example.com",
+                                "password": "Password@123"
+                            }
+                        },
+                        "message": "Login"
+                    }
+                }
+            }
+        }
+    }
+)
 def login(
     request: LoginRequest,
     db: Session = Depends(get_db)
@@ -43,7 +83,7 @@ def get_profile(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    user_id = int(current_user["sub"]) if "sub" in current_user else None
+    user_id = int(current_user["sub"]) if isinstance(current_user, dict) and "sub" in current_user else getattr(current_user, "user_id", None)
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(

@@ -1,6 +1,6 @@
 from groq import Groq
 
-from app.ai.config import ai_settings
+from app.core.config import settings
 
 
 class GroqClient:
@@ -8,7 +8,7 @@ class GroqClient:
     def __init__(self):
 
         self.client = Groq(
-            api_key=ai_settings.GROQ_API_KEY
+            api_key=settings.GROQ_API_KEY
         )
 
     def generate(
@@ -18,7 +18,7 @@ class GroqClient:
     ) -> str:
 
         response = self.client.chat.completions.create(
-            model=ai_settings.GROQ_MODEL,
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "user",

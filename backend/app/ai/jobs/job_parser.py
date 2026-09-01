@@ -1,6 +1,6 @@
 import json
 
-from app.ai.job.job_schema import JobSchema
+from app.ai.jobs.job_schema import JobSchema
 from app.ai.llm.groq_client import groq_client
 from app.ai.llm.prompts import JOB_EXTRACTION_PROMPT
 

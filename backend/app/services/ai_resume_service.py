@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.ai.resume.resume_parser import parse_resume
-from app.models.resume import Resume
+from app.models.resume_tables import Resume
 
 
 def process_resume(
