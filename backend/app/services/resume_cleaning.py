@@ -92,14 +92,27 @@ def clean_resume_text_service(
 
         db.refresh(resume)
 
+        # Trigger AI RAG Vector screening agent and save ScreeningResult into DB
+        screening = None
+        try:
+            from app.ai.services.screening_agent import screening_agent
+            screening = screening_agent.screen_resume_against_job(
+                db=db,
+                resume_id=resume.resume_id,
+                job_id=1
+            )
+        except Exception as se:
+            logger.warning("Auto AI screening step warning during cleaning: %s", se)
+
         logger.info(
             "Resume text cleaned successfully: resume_id=%s",
             resume_id
         )
 
         return {
-            "message": "Resume text cleaned successfully",
+            "message": "Resume text cleaned and screened successfully",
             "resume_id": resume.resume_id,
+            "screening_id": screening.screening_id if screening else None,
             "status": "completed"
         }
 

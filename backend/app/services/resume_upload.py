@@ -155,10 +155,28 @@ def upload_resume(
             current_user.user_id
         )
 
+        # Automatically trigger AI Screening Agent pipeline on resume upload
+        screening = None
+        try:
+            from app.ai.services.screening_agent import screening_agent
+            screening = screening_agent.screen_resume_against_job(
+                db=db,
+                resume_id=resume.resume_id,
+                job_id=1
+            )
+        except Exception as se:
+            logger.warning("Auto AI screening on upload step warning: %s", se)
+
         return {
-            "message": "Resume uploaded successfully",
+            "message": "Resume uploaded and screened successfully by AI Agent",
             "resume_id": resume.resume_id,
-            "file_name": original_file_name
+            "file_name": original_file_name,
+            "screening_id": screening.screening_id if screening else None,
+            "match_score": screening.match_score if screening else 0.0,
+            "status": screening.status if screening else "Completed",
+            "recommendation": screening.recommendation if screening else "",
+            "matched_skills": screening.matched_skills if screening else [],
+            "missing_skills": screening.missing_skills if screening else []
         }
 
     except Exception:

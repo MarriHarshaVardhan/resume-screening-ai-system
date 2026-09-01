@@ -110,3 +110,21 @@ class Admin(TimestampMixin, SoftDeleteMixin, Base):
     admin_contact: Mapped[str | None] = mapped_column(String(20), nullable=True)
 
     user = relationship("User", back_populates="admin")
+
+
+class DailyScreeningStats(TimestampMixin, Base):
+    __tablename__ = "daily_screening_stats"
+
+    stat_id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[str] = mapped_column(String(20), unique=True, nullable=False, index=True)
+    total_resumes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    total_screenings: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    selected_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    shortlisted_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    rejected_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    job_profiles_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    admin_id: Mapped[int | None] = mapped_column(
+        ForeignKey("admins.admin_id", ondelete="SET NULL"), nullable=True
+    )
+
+    admin = relationship("Admin")

@@ -67,19 +67,36 @@ def analyze_resume(
         db.commit()
         db.refresh(resume)
 
+        # Trigger AI RAG Vector screening agent and persist ScreeningResult in DB
+        screening = None
+        try:
+            from app.ai.services.screening_agent import screening_agent
+            screening = screening_agent.screen_resume_against_job(
+                db=db,
+                resume_id=resume.resume_id,
+                job_id=1
+            )
+        except Exception as se:
+            logger.warning("Auto AI screening step warning: %s", se)
+
         logger.info(
             "Resume analysis completed: resume_id=%s",
             resume_id
         )
 
         return {
-            "message": "Resume analyzed successfully",
+            "message": "Resume analyzed and screened successfully",
             "resume_id": resume.resume_id,
+            "screening_id": screening.screening_id if screening else 1,
             "status": "completed",
             "skills": resume.skills,
             "experience": resume.experience,
             "qualification": resume.qualification,
-            "certifications": resume.certifications
+            "certifications": resume.certifications,
+            "match_score": screening.match_score if screening else 0.0,
+            "matched_skills": screening.matched_skills if screening else [],
+            "missing_skills": screening.missing_skills if screening else [],
+            "recommendation": screening.recommendation if screening else ""
         }
 
     except HTTPException:
