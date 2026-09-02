@@ -41,10 +41,9 @@ def login(
 @router.get("/me")
 def get_profile(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
-    user_id = int(current_user["sub"]) if "sub" in current_user else None
-    user = db.query(User).filter(User.user_id == user_id).first()
+    user = current_user
     if not user:
         raise HTTPException(
             status_code=404,
