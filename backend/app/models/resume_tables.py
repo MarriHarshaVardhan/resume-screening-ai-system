@@ -79,8 +79,8 @@ class ScreeningResult(TimestampMixin, Base):
     resume_id: Mapped[int] = mapped_column(
         ForeignKey("resumes.resume_id", ondelete="CASCADE"), nullable=False, index=True
     )
-    job_id: Mapped[int] = mapped_column(
-        ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=False, index=True
+    job_id: Mapped[int | None] = mapped_column(
+        ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=True, index=True
     )
     status: Mapped[str] = mapped_column(
         String(50), default="PENDING", nullable=False, index=True
