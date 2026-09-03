@@ -53,9 +53,8 @@ def get_screening_result(
         ),
 
         "certifications": (
-            result.resume.certifications
+            (result.resume.certifications or [])
             if result.resume
-            and result.resume.certifications
             else []
         ),
 

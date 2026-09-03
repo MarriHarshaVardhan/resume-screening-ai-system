@@ -23,13 +23,6 @@ from app.models.resume_tables import (
 logger = logging.getLogger(__name__)
 
 
-ALLOWED_EXTENSIONS = {
-    ".pdf",
-    ".doc",
-    ".docx"
-}
-
-
 def upload_resume(
     file: UploadFile,
     job_title: str,
@@ -70,11 +63,12 @@ def upload_resume(
         original_file_name
     ).suffix.lower()
 
-    if file_extension not in ALLOWED_EXTENSIONS:
+    allowed_extensions = settings.get_allowed_extensions()
+    if file_extension not in allowed_extensions:
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only PDF, DOC and DOCX files are allowed"
+            detail=f"Only {', '.join(sorted(allowed_extensions))} files are allowed"
         )
 
     try:
@@ -92,9 +86,14 @@ def upload_resume(
 
         if file_size > settings.MAX_RESUME_FILE_SIZE:
 
+            max_mb = settings.MAX_RESUME_FILE_SIZE // (1024 * 1024)
+            logger.warning(
+                "Resume upload failed: file exceeds maximum size"
+            )
+
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Resume file size must not exceed 10 MB"
+                detail=f"Resume file size must not exceed {max_mb} MB"
             )
 
         upload_directory = Path(
@@ -172,36 +171,44 @@ def upload_resume(
 
         db.refresh(resume)
 
-        # Create Job
-
-        job = Job(
-            job_title=job_title.strip(),
-            required_skills=skills_list
-        )
-
-        db.add(job)
-
-        db.commit()
-
-        db.refresh(job)
-
+        saved_resume_id = resume.resume_id
         logger.info(
-            "Resume and Job created successfully: "
-            "resume_id=%s, job_id=%s",
-            resume.resume_id,
-            job.job_id
+            "Resume record created successfully: resume_id=%s, user_id=%s",
+            saved_resume_id,
+            current_user.user_id
         )
+
+
+        # Automatically trigger AI Screening Agent pipeline on resume upload
+        screening = None
+        try:
+            from app.ai.services.screening_agent import screening_agent
+            screening = screening_agent.screen_resume_against_job(
+                db=db,
+                resume_id=saved_resume_id,
+                job_id=None
+            )
+        except Exception as se:
+            db.rollback()
+            logger.warning("Auto AI screening on upload step warning: %s", se)
 
         return {
-            "message": "Resume uploaded successfully",
-            "resume_id": resume.resume_id,
-            "job_id": job.job_id,
-            "file_name": original_file_name
+            "message": "Resume uploaded and screened successfully by AI Agent",
+            "resume_id": saved_resume_id,
+            "file_name": original_file_name,
+            "screening_id": screening.screening_id if screening else None,
+            "match_score": screening.match_score if screening else 0.0,
+            "status": screening.status if screening else "Completed",
+            "recommendation": screening.recommendation if screening else "",
+            "matched_skills": screening.matched_skills if screening else [],
+            "missing_skills": screening.missing_skills if screening else []
         }
 
+    except HTTPException:
+        raise
     except Exception:
-
         db.rollback()
+
 
         logger.exception(
             "Resume or Job database creation failed"
