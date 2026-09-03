@@ -1,6 +1,13 @@
 import logging
 
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import (
+    APIRouter,
+    UploadFile,
+    File,
+    Form,
+    Depends
+)
+
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user
@@ -25,7 +32,13 @@ router = APIRouter(
 )
 def upload_resume_api(
     file: UploadFile = File(...),
+
+    job_title: str = Form(...),
+
+    required_skills: str = Form(...),
+
     current_user: User = Depends(get_current_user),
+
     db: Session = Depends(get_db)
 ):
 
@@ -36,6 +49,8 @@ def upload_resume_api(
 
     return upload_resume(
         file=file,
+        job_title=job_title,
+        required_skills=required_skills,
         current_user=current_user,
         db=db
     )

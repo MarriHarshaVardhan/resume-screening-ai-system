@@ -3,6 +3,7 @@ from typing import List, Optional
 
 
 class ResumeUploadResponseDTO(BaseModel):
+
     message: str
     resume_id: int
     file_name: str
