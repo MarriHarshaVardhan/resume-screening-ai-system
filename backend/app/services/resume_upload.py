@@ -1,12 +1,23 @@
 import logging
 import uuid
+
 from pathlib import Path
 
-from fastapi import UploadFile, HTTPException, status
+from fastapi import (
+    UploadFile,
+    HTTPException,
+    status
+)
+
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.models.resume_tables import Resume, User
+
+from app.models.resume_tables import (
+    Resume,
+    User,
+    Job
+)
 
 
 logger = logging.getLogger(__name__)
@@ -21,6 +32,8 @@ ALLOWED_EXTENSIONS = {
 
 def upload_resume(
     file: UploadFile,
+    job_title: str,
+    required_skills: str,
     current_user: User,
     db: Session
 ):
@@ -31,9 +44,6 @@ def upload_resume(
     )
 
     if not file:
-        logger.warning(
-            "Resume upload failed: file is required"
-        )
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -41,13 +51,17 @@ def upload_resume(
         )
 
     if not file.filename:
-        logger.warning(
-            "Resume upload failed: file name is missing"
-        )
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Resume file name is required"
+        )
+
+    if not job_title or not job_title.strip():
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Job title is required"
         )
 
     original_file_name = file.filename
@@ -57,11 +71,6 @@ def upload_resume(
     ).suffix.lower()
 
     if file_extension not in ALLOWED_EXTENSIONS:
-
-        logger.warning(
-            "Resume upload failed: unsupported file type %s",
-            file_extension
-        )
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -76,20 +85,12 @@ def upload_resume(
 
         if file_size == 0:
 
-            logger.warning(
-                "Resume upload failed: empty file"
-            )
-
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Resume file is empty"
             )
 
         if file_size > settings.MAX_RESUME_FILE_SIZE:
-
-            logger.warning(
-                "Resume upload failed: file exceeds maximum size"
-            )
 
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -113,8 +114,14 @@ def upload_resume(
             upload_directory / unique_file_name
         )
 
-        with open(file_path, "wb") as resume_file:
-            resume_file.write(file_content)
+        with open(
+            file_path,
+            "wb"
+        ) as resume_file:
+
+            resume_file.write(
+                file_content
+            )
 
         logger.info(
             "Resume file saved successfully: %s",
@@ -122,6 +129,7 @@ def upload_resume(
         )
 
     except HTTPException:
+
         raise
 
     except Exception:
@@ -137,10 +145,25 @@ def upload_resume(
 
     try:
 
+        # Convert comma-separated skills
+        # Example:
+        # Python, SQL, Flutter
+        # →
+        # ["Python", "SQL", "Flutter"]
+
+        skills_list = [
+            skill.strip()
+            for skill in required_skills.split(",")
+            if skill.strip()
+        ]
+
+        # Create Resume
+
         resume = Resume(
             user_id=current_user.user_id,
             resume_file_name=original_file_name,
-            resume_file_path=str(file_path)
+            resume_file_path=str(file_path),
+            resume_file_type=file_extension.replace(".", "")
         )
 
         db.add(resume)
@@ -149,15 +172,30 @@ def upload_resume(
 
         db.refresh(resume)
 
+        # Create Job
+
+        job = Job(
+            job_title=job_title.strip(),
+            required_skills=skills_list
+        )
+
+        db.add(job)
+
+        db.commit()
+
+        db.refresh(job)
+
         logger.info(
-            "Resume record created successfully: resume_id=%s, user_id=%s",
+            "Resume and Job created successfully: "
+            "resume_id=%s, job_id=%s",
             resume.resume_id,
-            current_user.user_id
+            job.job_id
         )
 
         return {
             "message": "Resume uploaded successfully",
             "resume_id": resume.resume_id,
+            "job_id": job.job_id,
             "file_name": original_file_name
         }
 
@@ -166,17 +204,18 @@ def upload_resume(
         db.rollback()
 
         logger.exception(
-            "Resume database record creation failed"
+            "Resume or Job database creation failed"
         )
 
-        # Remove uploaded file if DB operation fails
         if file_path.exists():
+
             file_path.unlink()
 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Unable to save resume information"
+            detail="Unable to save resume and job information"
         )
 
     finally:
+
         file.file.close()
