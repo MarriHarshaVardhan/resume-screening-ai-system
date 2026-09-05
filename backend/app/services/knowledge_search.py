@@ -1,5 +1,5 @@
 import logging
-
+from fastapi import HTTPException, status
 from app.ai.services.embedding_service import generate_embedding
 from app.ai.services.pinecone_service import get_pinecone_index
 from app.dto.knowledge import (
@@ -8,7 +8,6 @@ from app.dto.knowledge import (
     KnowledgeSearchResultDTO,
 )
 from app.models.resume_tables import User
-from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ def search_knowledge(data: KnowledgeSearchDTO, current_user: User):
 
         response = index.query(
             vector=embedding,
-            top_k=5,
+            top_k=10,
             include_metadata=True,
             filter={
                 "job_title": {
@@ -43,9 +42,17 @@ def search_knowledge(data: KnowledgeSearchDTO, current_user: User):
             }
         )
 
+        matches = response.get("matches", [])
+
+        matches.sort(
+            key=lambda match: (
+                match.get("metadata", {}).get("chunk_index", 0)
+            )
+        )
+
         results = []
 
-        for match in response.get("matches", []):
+        for match in matches:
             metadata = match.get("metadata", {})
 
             results.append(
@@ -58,7 +65,7 @@ def search_knowledge(data: KnowledgeSearchDTO, current_user: User):
             )
 
         logger.info(
-            "Knowledge search completed: user_id=%s job_title=%s results=%s",
+            "Knowledge search completed: user_id=%s job_title=%s chunks=%s",
             current_user.user_id,
             job_title,
             len(results)
