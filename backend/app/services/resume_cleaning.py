@@ -1,13 +1,16 @@
 import logging
 
 from fastapi import HTTPException, status
-
 from sqlalchemy.orm import Session
 
 from app.models.resume_tables import Resume, User
 
 from app.ai.preprocessors.text_cleaner import (
     clean_resume_text
+)
+
+from app.ai.embeddings.chroma_service import (
+    add_resume
 )
 
 
@@ -20,8 +23,9 @@ def clean_resume_text_service(
     db: Session
 ):
     """
-    Clean extracted resume text and save the cleaned
-    version separately in the database.
+    Clean extracted resume text,
+    save the cleaned text into PostgreSQL,
+    and store its embedding in ChromaDB.
     """
 
     logger.info(
@@ -70,6 +74,7 @@ def clean_resume_text_service(
 
     try:
 
+        # Clean the extracted resume text
         cleaned_text = clean_resume_text(
             resume.resume_text
         )
@@ -86,6 +91,7 @@ def clean_resume_text_service(
                 detail="Unable to clean resume text"
             )
 
+        # Save cleaned text in PostgreSQL
         resume.cleaned_resume_text = cleaned_text
 
         db.commit()
@@ -93,15 +99,9 @@ def clean_resume_text_service(
         db.refresh(resume)
 
         logger.info(
-            "Resume text cleaned successfully: resume_id=%s",
+            "Resume text cleaned and saved successfully: resume_id=%s",
             resume_id
         )
-
-        return {
-            "message": "Resume text cleaned successfully",
-            "resume_id": resume.resume_id,
-            "status": "completed"
-        }
 
     except HTTPException:
         raise
@@ -119,3 +119,34 @@ def clean_resume_text_service(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to clean resume text"
         )
+
+    try:
+
+        # Store cleaned resume in ChromaDB
+        add_resume(
+            resume_id=str(resume.resume_id),
+            resume_text=cleaned_text
+        )
+
+        logger.info(
+            "Resume embedding stored in ChromaDB: resume_id=%s",
+            resume_id
+        )
+
+    except Exception:
+
+        logger.exception(
+            "Failed to store resume embedding in ChromaDB: resume_id=%s",
+            resume_id
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to store resume in vector database"
+        )
+
+    return {
+        "message": "Resume text cleaned and stored successfully",
+        "resume_id": resume.resume_id,
+        "status": "completed"
+    }

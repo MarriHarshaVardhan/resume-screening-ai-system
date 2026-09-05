@@ -8,10 +8,13 @@ from app.api.screen_view import router as screen_view_router
 from app.api.screening_history import router as screening_history_router
 from app.api.resume_analysis import router as resume_analysis_router
 from fastapi import APIRouter
+from app.api.job import router as job_router
+
 
 router = APIRouter()
 
 router.include_router(authentication_router)
+router.include_router(job_router)
 router.include_router(resume_upload_router)
 router.include_router(screening_router, prefix="/api")
 router.include_router(screening_history_router)
