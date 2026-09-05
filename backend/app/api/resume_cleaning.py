@@ -1,26 +1,12 @@
 import logging
 
-from fastapi import (
-    APIRouter,
-    Depends
-)
-
-from sqlalchemy.orm import Session
-
 from app.core.security import get_current_user
-
+from app.dto.resume_cleaning import ResumeCleaningResponseDTO
 from app.models.database import get_db
-
 from app.models.resume_tables import User
-
-from app.dto.resume_cleaning import (
-    ResumeCleaningResponseDTO
-)
-
-from app.services.resume_cleaning import (
-    clean_resume_text_service
-)
-
+from app.services.resume_cleaning import clean_resume_text_service
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 

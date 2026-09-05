@@ -2,7 +2,6 @@ import logging
 
 from docx import Document
 
-
 logger = logging.getLogger(__name__)
 
 

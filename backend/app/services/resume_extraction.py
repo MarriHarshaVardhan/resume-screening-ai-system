@@ -1,21 +1,11 @@
 import logging
-
 from pathlib import Path
 
-from fastapi import HTTPException, status
-
-from sqlalchemy.orm import Session
-
+from app.ai.parsers.docx_parser import extract_text_from_docx
+from app.ai.parsers.pdf_parser import extract_text_from_pdf
 from app.models.resume_tables import Resume, User
-
-from app.ai.parsers.pdf_parser import (
-    extract_text_from_pdf
-)
-
-from app.ai.parsers.docx_parser import (
-    extract_text_from_docx
-)
-
+from fastapi import HTTPException, status
+from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
