@@ -10,3 +10,5 @@ __pycache__/
 .venv/
 
 uploads/
+
+app/ai/chatbot/chroma_db/
