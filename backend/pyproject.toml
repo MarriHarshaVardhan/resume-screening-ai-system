@@ -25,4 +25,7 @@ dependencies = [
     "psycopg[binary]>=3.3.4",
     "reportlab>=5.0.1",
     "groq>=1.7.0",
+    "pinecone>=10.0.0",
+    "sentence-transformers>=6.0.1",
+    "torch>=2.14.0",
 ]
