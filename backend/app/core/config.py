@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     #GROQ_MODEL: str = "llama3-70b-8192"
     GROQ_MODEL: str = "openai/gpt-oss-20b"
 
+    PINECONE_API_KEY: str
+    PINECONE_INDEX_NAME: str = "resume-screening-knowledge"
+
 
     model_config = SettingsConfigDict(
         env_file=".env",
