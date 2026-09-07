@@ -1,20 +1,17 @@
-from pathlib import Path
-
-import chromadb
 from groq import Groq
+from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import settings
 
-BASE_DIR = Path(__file__).resolve().parent
-CHROMA_DIR = BASE_DIR / "chroma_db"
-
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-client = chromadb.PersistentClient(path=str(CHROMA_DIR))
+pc = Pinecone(
+    api_key=settings.PINECONE_API_KEY
+)
 
-collection = client.get_collection(
-    name="resume_screening_faq"
+index = pc.Index(
+    settings.PINECONE_INDEX_NAME
 )
 
 groq_client = Groq(
@@ -23,14 +20,18 @@ groq_client = Groq(
 
 
 def get_relevant_faq(question: str):
-    embedding = model.encode([question]).tolist()
+    embedding = model.encode(question).tolist()
 
-    result = collection.query(
-        query_embeddings=embedding,
-        n_results=1
+    result = index.query(
+        vector=embedding,
+        top_k=1,
+        include_metadata=True
     )
 
-    return result["documents"][0][0]
+    if not result.matches:
+        return ""
+
+    return result.matches[0].metadata["text"]
 
 
 def ask_chatbot(

@@ -1,19 +1,33 @@
 from pathlib import Path
 
-import chromadb
+from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
+
+from app.core.config import settings
 
 BASE_DIR = Path(__file__).resolve().parent
 FAQ_FILE = BASE_DIR / "faq.md"
-CHROMA_DIR = BASE_DIR / "chroma_db"
 
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-
-collection = client.get_or_create_collection(
-    name="resume_screening_faq"
+pc = Pinecone(
+    api_key=settings.PINECONE_API_KEY
 )
+
+index_name = settings.PINECONE_INDEX_NAME
+
+if not pc.has_index(index_name):
+    pc.create_index(
+        name=index_name,
+        dimension=384,
+        metric="cosine",
+        spec=ServerlessSpec(
+            cloud="aws",
+            region="us-east-1"
+        )
+    )
+
+index = pc.Index(index_name)
 
 
 def load_faq():
@@ -37,15 +51,26 @@ def create_faq_embeddings():
 
     embeddings = model.encode(chunks).tolist()
 
-    ids = [f"faq_{index}" for index in range(len(chunks))]
+    records = []
 
-    collection.upsert(
-        ids=ids,
-        documents=chunks,
-        embeddings=embeddings
+    for index_number, (chunk, embedding) in enumerate(
+        zip(chunks, embeddings)
+    ):
+        records.append(
+            {
+                "id": f"faq_{index_number}",
+                "values": embedding,
+                "metadata": {
+                    "text": chunk
+                }
+            }
+        )
+
+    index.upsert(vectors=records)
+
+    print(
+        f"Stored {len(chunks)} FAQ chunks in Pinecone."
     )
-
-    print(f"Stored {len(chunks)} FAQ chunks in ChromaDB.")
 
 
 if __name__ == "__main__":
