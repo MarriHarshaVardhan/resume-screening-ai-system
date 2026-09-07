@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "openai/gpt-oss-20b"
 
     PINECONE_API_KEY: str
-    PINECONE_INDEX_NAME: str = "resume-screening-knowledge"
+    PINECONE_INDEX_NAME: str
 
+   
 
     model_config = SettingsConfigDict(
         env_file=".env",
