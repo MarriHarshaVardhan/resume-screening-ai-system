@@ -11,6 +11,7 @@ from app.api.screen_report import router as screen_report_router
 from app.api.screen_view import router as screen_view_router
 from app.api.screening_agent import router as screening_agent_router
 from app.api.screening_history import router as screening_history_router
+from app.api.start_screening import router as start_screening_router
 from app.api.resume_analysis import router as resume_analysis_router
 from app.api.admin import router as admin_router
 from fastapi import APIRouter
