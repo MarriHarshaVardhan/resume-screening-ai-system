@@ -1,18 +1,18 @@
-"""initial commit
+"""final db tables
 
-Revision ID: 47ab59f9fe70
+Revision ID: 134a3e023ba2
 Revises: 
-Create Date: 2026-08-29 15:43:20.169921
+Create Date: 2026-09-08 11:51:09.312138
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+
 
 # revision identifiers, used by Alembic.
-revision: str = '47ab59f9fe70'
+revision: str = '134a3e023ba2'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,7 +24,7 @@ def upgrade() -> None:
     sa.Column('job_id', sa.Integer(), nullable=False),
     sa.Column('job_title', sa.String(length=255), nullable=False),
     sa.Column('job_description', sa.Text(), nullable=True),
-    sa.Column('required_skills', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('required_skills', sa.JSON(), nullable=True),
     sa.Column('required_experience', sa.String(length=100), nullable=True),
     sa.Column('location', sa.String(length=255), nullable=True),
     sa.Column('category', sa.String(length=100), nullable=True),
@@ -67,11 +67,12 @@ def upgrade() -> None:
     sa.Column('resume_file_name', sa.String(length=255), nullable=False),
     sa.Column('resume_file_path', sa.String(length=500), nullable=False),
     sa.Column('resume_file_type', sa.String(length=20), nullable=True),
+    sa.Column('cleaned_resume_text', sa.Text(), nullable=True),
     sa.Column('resume_text', sa.Text(), nullable=True),
-    sa.Column('skills', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('skills', sa.JSON(), nullable=True),
     sa.Column('experience', sa.String(length=100), nullable=True),
     sa.Column('qualification', sa.String(length=255), nullable=True),
-    sa.Column('certifications', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('certifications', sa.JSON(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.Column('deleted_at', sa.DateTime(), nullable=True),
@@ -83,15 +84,20 @@ def upgrade() -> None:
     sa.Column('screening_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('resume_id', sa.Integer(), nullable=False),
-    sa.Column('job_id', sa.Integer(), nullable=False),
+    sa.Column('job_id', sa.Integer(), nullable=True),
     sa.Column('status', sa.String(length=50), nullable=False),
     sa.Column('current_step', sa.String(length=100), nullable=True),
     sa.Column('progress', sa.Integer(), nullable=False),
-    sa.Column('matched_skills', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-    sa.Column('missing_skills', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+    sa.Column('matched_skills', sa.JSON(), nullable=True),
+    sa.Column('missing_skills', sa.JSON(), nullable=True),
     sa.Column('match_score', sa.Float(), nullable=True),
     sa.Column('screening_result', sa.String(length=50), nullable=True),
     sa.Column('recommendation', sa.Text(), nullable=True),
+    sa.Column('experience_assessment', sa.Text(), nullable=True),
+    sa.Column('qualification_assessment', sa.Text(), nullable=True),
+    sa.Column('strengths', sa.JSON(), nullable=True),
+    sa.Column('concerns', sa.JSON(), nullable=True),
+    sa.Column('score_breakdown', sa.JSON(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['job_id'], ['jobs.job_id'], ondelete='CASCADE'),
