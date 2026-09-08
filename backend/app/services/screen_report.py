@@ -1,32 +1,17 @@
 from io import BytesIO
 from xml.sax.saxutils import escape
-
-from app.models.resume_tables import ScreeningResult
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import (
-    ParagraphStyle,
-    getSampleStyleSheet,
-)
-from reportlab.platypus import (
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy.orm import Session
-
+from app.models.resume_tables import ScreeningResult
 
 def get_screening_result(
     db: Session,
     screening_id: int,
 ):
-    """
-    Get screening result using screening ID.
-    """
-
     result = (
         db.query(ScreeningResult)
         .filter(
@@ -37,41 +22,35 @@ def get_screening_result(
 
     if result is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Screening result not found",
         )
 
     return result
 
-
 def _format_value(value):
-    """
-    Convert database values into readable text.
-    """
-
     if value is None:
         return "Not available"
 
     if isinstance(value, list):
         if not value:
             return "None"
+        return ", ".join(str(item) for item in value)
 
+    if isinstance(value, dict):
+        if not value:
+            return "None"
         return ", ".join(
-            str(item)
-            for item in value
+            f"{key}: {value}"
+            for key, value in value.items()
         )
 
     return str(value)
-
 
 def generate_screening_report(
     db: Session,
     screening_id: int,
 ):
-    """
-    Generate AI Resume Screening PDF Report.
-    """
-
     result = get_screening_result(
         db=db,
         screening_id=screening_id,
@@ -114,7 +93,6 @@ def generate_screening_report(
 
     story = []
 
-    # REPORT TITLE
     story.append(
         Paragraph(
             "AI Resume Screening Report",
@@ -126,7 +104,6 @@ def generate_screening_report(
         Spacer(1, 10)
     )
 
-    # GET RELATIONSHIP DATA
     candidate_name = (
         result.user.name
         if result.user
@@ -157,31 +134,34 @@ def generate_screening_report(
         else []
     )
 
-    # CANDIDATE DETAILS
     details = [
         [
             "Candidate",
-            escape(_format_value(candidate_name))
+            escape(_format_value(candidate_name)),
         ],
         [
             "Job Title",
-            escape(_format_value(job_title))
+            escape(_format_value(job_title)),
         ],
         [
             "Match Score",
-            f"{result.match_score}%"
+            f"{result.match_score if result.match_score is not None else 0}%",
+        ],
+        [
+            "Screening Result",
+            escape(_format_value(result.screening_result)),
         ],
         [
             "Experience",
-            escape(_format_value(experience))
+            escape(_format_value(experience)),
         ],
         [
             "Qualification",
-            escape(_format_value(qualification))
+            escape(_format_value(qualification)),
         ],
         [
             "Certifications",
-            escape(_format_value(certifications))
+            escape(_format_value(certifications)),
         ],
     ]
 
@@ -200,42 +180,36 @@ def generate_screening_report(
                     0.5,
                     colors.grey,
                 ),
-
                 (
                     "BACKGROUND",
                     (0, 0),
                     (0, -1),
                     colors.lightgrey,
                 ),
-
                 (
                     "VALIGN",
                     (0, 0),
                     (-1, -1),
                     "TOP",
                 ),
-
                 (
                     "LEFTPADDING",
                     (0, 0),
                     (-1, -1),
                     8,
                 ),
-
                 (
                     "RIGHTPADDING",
                     (0, 0),
                     (-1, -1),
                     8,
                 ),
-
                 (
                     "TOPPADDING",
                     (0, 0),
                     (-1, -1),
                     8,
                 ),
-
                 (
                     "BOTTOMPADDING",
                     (0, 0),
@@ -246,11 +220,8 @@ def generate_screening_report(
         )
     )
 
-    story.append(
-        details_table
-    )
+    story.append(details_table)
 
-    # MATCHED SKILLS
     story.append(
         Paragraph(
             "Matched Skills",
@@ -269,7 +240,6 @@ def generate_screening_report(
         )
     )
 
-    # MISSING SKILLS
     story.append(
         Paragraph(
             "Missing Skills",
@@ -288,7 +258,96 @@ def generate_screening_report(
         )
     )
 
-    # RECOMMENDATION
+    story.append(
+        Paragraph(
+            "Experience Assessment",
+            heading_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            escape(
+                _format_value(
+                    result.experience_assessment
+                )
+            ),
+            normal_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Qualification Assessment",
+            heading_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            escape(
+                _format_value(
+                    result.qualification_assessment
+                )
+            ),
+            normal_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Strengths",
+            heading_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            escape(
+                _format_value(
+                    result.strengths
+                )
+            ),
+            normal_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Concerns",
+            heading_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            escape(
+                _format_value(
+                    result.concerns
+                )
+            ),
+            normal_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            "Score Breakdown",
+            heading_style,
+        )
+    )
+
+    story.append(
+        Paragraph(
+            escape(
+                _format_value(
+                    result.score_breakdown
+                )
+            ),
+            normal_style,
+        )
+    )
+
     story.append(
         Paragraph(
             "Recommendation",
@@ -307,7 +366,6 @@ def generate_screening_report(
         )
     )
 
-    # SUMMARY
     story.append(
         Paragraph(
             "Summary",
@@ -326,7 +384,6 @@ def generate_screening_report(
         )
     )
 
-    # BUILD PDF
     document.build(story)
 
     buffer.seek(0)

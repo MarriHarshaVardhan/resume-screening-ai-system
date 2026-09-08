@@ -71,20 +71,11 @@ class Job(TimestampMixin, SoftDeleteMixin, Base):
 
 class ScreeningResult(TimestampMixin, Base):
     __tablename__ = "screening_results"
-
     screening_id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    resume_id: Mapped[int] = mapped_column(
-        ForeignKey("resumes.resume_id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    job_id: Mapped[int | None] = mapped_column(
-        ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=True, index=True
-    )
-    status: Mapped[str] = mapped_column(
-        String(50), default="PENDING", nullable=False, index=True
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resumes.resume_id", ondelete="CASCADE"), nullable=False, index=True)
+    job_id: Mapped[int | None] = mapped_column(ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="PENDING", nullable=False, index=True)
     current_step: Mapped[str | None] = mapped_column(String(100), nullable=True)
     progress: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     matched_skills: Mapped[list | None] = mapped_column(JSON, nullable=True)
@@ -92,7 +83,11 @@ class ScreeningResult(TimestampMixin, Base):
     match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     screening_result: Mapped[str | None] = mapped_column(String(50), nullable=True)
     recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
-
+    experience_assessment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    qualification_assessment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    strengths: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    concerns: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    score_breakdown: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     user = relationship("User", back_populates="screening_results")
     resume = relationship("Resume", back_populates="screening_results")
     job = relationship("Job", back_populates="screening_results")

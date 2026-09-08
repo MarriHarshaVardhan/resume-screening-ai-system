@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-
 from app.models.database import get_db
 from app.services.screen_report import (
     get_screening_result,
@@ -9,12 +8,10 @@ from app.services.screen_report import (
 )
 from app.dto.screen_report import ScreeningResultResponse
 
-
 router = APIRouter(
     prefix="/screening-result",
     tags=["Screening Result"],
 )
-
 
 @router.get(
     "/{screening_id}",
@@ -31,48 +28,22 @@ def view_screening_result(
 
     return {
         "screening_id": result.screening_id,
-
-        "candidate_name": (
-            result.user.name
-            if result.user
-            else None
-        ),
-
-        "job_title": (
-            result.job.job_title
-            if result.job
-            else None
-        ),
-
+        "candidate_name": result.user.name if result.user else None,
+        "job_title": result.job.job_title if result.job else None,
         "match_score": result.match_score,
-
         "matched_skills": result.matched_skills or [],
-
         "missing_skills": result.missing_skills or [],
-
-        "experience": (
-            result.resume.experience
-            if result.resume
-            else None
-        ),
-
-        "qualification": (
-            result.resume.qualification
-            if result.resume
-            else None
-        ),
-
-        "certifications": (
-            result.resume.certifications
-            if result.resume
-            else []
-        ),
-
+        "experience": result.resume.experience if result.resume else None,
+        "qualification": result.resume.qualification if result.resume else None,
+        "certifications": result.resume.certifications if result.resume else [],
+        "experience_assessment": result.experience_assessment,
+        "qualification_assessment": result.qualification_assessment,
+        "strengths": result.strengths or [],
+        "concerns": result.concerns or [],
+        "score_breakdown": result.score_breakdown or {},
         "recommendation": result.recommendation,
-
         "summary": result.screening_result,
     }
-
 
 @router.get(
     "/{screening_id}/download",

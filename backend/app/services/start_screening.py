@@ -1,6 +1,6 @@
 import logging
 
-from app.ai.services.screening_analyzer import analyze_screening
+from app.ai.agents.screening_agent import run_screening_agent
 from app.dto.start_screening import StartScreeningDTO
 from app.models.resume_tables import Job, Resume, ScreeningResult, User
 from fastapi import HTTPException, status
@@ -28,9 +28,10 @@ def start_screening(data: StartScreeningDTO, current_user: User, db: Session):
         )
 
     job = Job(
-        job_title=data.job_title,
+        job_title=data.job_title.strip(),
         required_skills=data.required_skills
     )
+
     db.add(job)
     db.flush()
 
@@ -42,12 +43,14 @@ def start_screening(data: StartScreeningDTO, current_user: User, db: Session):
         current_step="AI_SCREENING",
         progress=20
     )
+
     db.add(screening)
     db.flush()
 
     try:
-        result = analyze_screening(
+        result = run_screening_agent(
             resume_text=resume.cleaned_resume_text,
+            resume_id=resume.resume_id,
             job_title=job.job_title,
             required_skills=job.required_skills
         )
@@ -57,12 +60,26 @@ def start_screening(data: StartScreeningDTO, current_user: User, db: Session):
         match_score = float(result.get("match_score", 0))
         screening_result = result.get("screening_result", "REVIEW")
         recommendation = result.get("recommendation", "")
+        experience_assessment = result.get("experience_assessment", "")
+        qualification_assessment = result.get("qualification_assessment", "")
+        strengths = result.get("strengths", [])
+        concerns = result.get("concerns", [])
+        score_breakdown = result.get("score_breakdown", {})
 
         if not isinstance(matched_skills, list):
             raise ValueError("Invalid matched_skills format")
 
         if not isinstance(missing_skills, list):
             raise ValueError("Invalid missing_skills format")
+
+        if not isinstance(strengths, list):
+            raise ValueError("Invalid strengths format")
+
+        if not isinstance(concerns, list):
+            raise ValueError("Invalid concerns format")
+
+        if not isinstance(score_breakdown, dict):
+            raise ValueError("Invalid score_breakdown format")
 
         if not 0 <= match_score <= 100:
             raise ValueError("Invalid match_score")
@@ -78,6 +95,11 @@ def start_screening(data: StartScreeningDTO, current_user: User, db: Session):
         screening.match_score = match_score
         screening.screening_result = screening_result
         screening.recommendation = recommendation
+        screening.experience_assessment = experience_assessment
+        screening.qualification_assessment = qualification_assessment
+        screening.strengths = strengths
+        screening.concerns = concerns
+        screening.score_breakdown = score_breakdown
 
         db.commit()
         db.refresh(screening)
@@ -100,7 +122,12 @@ def start_screening(data: StartScreeningDTO, current_user: User, db: Session):
             "missing_skills": missing_skills,
             "match_score": match_score,
             "screening_result": screening_result,
-            "recommendation": recommendation
+            "recommendation": recommendation,
+            "experience_assessment": experience_assessment,
+            "qualification_assessment": qualification_assessment,
+            "strengths": strengths,
+            "concerns": concerns,
+            "score_breakdown": score_breakdown
         }
 
     except HTTPException:

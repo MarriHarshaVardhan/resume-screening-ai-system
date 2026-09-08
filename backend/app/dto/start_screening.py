@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class StartScreeningDTO(BaseModel):
     resume_id: int
     job_title: str = Field(min_length=1)
@@ -17,3 +18,8 @@ class StartScreeningResponseDTO(BaseModel):
     match_score: float
     screening_result: str
     recommendation: str
+    experience_assessment: str
+    qualification_assessment: str
+    strengths: list[str]
+    concerns: list[str]
+    score_breakdown: dict
